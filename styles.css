@@ -109,3 +109,26 @@ input[type=range] { width: 100%; accent-color: var(--sage-deep); }
 /* En las miniaturas se muestra solo la tabla de manos (más grande) */
 .tile .frame { aspect-ratio: 1.24; }
 .tile .frame img { width: 172%; max-width: none; }
+/* línea de mesa */
+.tbox { background: var(--card); border-radius: var(--radius); padding: 12px; box-shadow: var(--shadow); }
+.tline { display: flex; gap: 4px; align-items: stretch; overflow-x: auto; }
+.tline .seat { flex: 1 1 0; min-width: 64px; display: flex; flex-direction: column; gap: 4px; padding: 4px; border-radius: 12px; }
+.tline .seat.hero { border: 2px solid #3B6D11; background: var(--sage); }
+.tline .seat.empty .sn { opacity: .45; }
+.tline .sn { font-size: 12px; font-weight: 700; color: var(--muted); text-align: center; margin-bottom: 2px; }
+.tline .seat.hero .sn { color: #3B6D11; }
+.tline .sep { width: 1px; background: var(--line); margin: 0 2px; flex: none; }
+.m { display: flex; align-items: center; justify-content: center; gap: 4px; border: 0; border-radius: 9px; padding: 8px 4px;
+  font-size: 13px; font-weight: 700; width: 100%; min-height: 38px; }
+.m .ic { font-size: 14px; }
+.m.sel { outline: 3px solid var(--ink); outline-offset: 1px; }
+.me { background: #3B6D11; color: #EAF3DE; } .lp { background: #E6F1FB; color: #0C447C; }
+.op { background: #EEEDFE; color: #3C3489; } .tb { background: #FAEEDA; color: #633806; } .jm { background: #FCEBEB; color: #791F1F; }
+.bR { box-shadow: inset 0 4px 0 #3B6D11; } .bL { box-shadow: inset 0 4px 0 #185FA5; }
+.legend { display: flex; flex-wrap: wrap; gap: 12px; font-size: 12px; margin-top: 10px; color: var(--ink); }
+.legend span { display: inline-flex; align-items: center; gap: 5px; }
+.lg { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+@media (max-width: 600px) { .m { font-size: 11px; padding: 6px 2px; } .m .ic { display: none; } .tline .seat { min-width: 52px; } }
+.cnt { margin-left: 4px; font-size: 11px; font-weight: 700; opacity: .7; }
+.strip { display: flex; gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory; padding: 4px 2px 12px; -webkit-overflow-scrolling: touch; }
+.strip .tile { flex: none; width: min(78vw, 520px); scroll-snap-align: start; }

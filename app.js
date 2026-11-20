@@ -1,7 +1,7 @@
 /* RangeViewer 2027 — visor de rangos (PWA). Las imágenes se importan desde ALL Ranges.zip y se guardan en IndexedDB. */
 'use strict';
 
-const VERSION = '1.0.0';
+const VERSION = '2.0.0';
 const POS = ['utg', 'utg1', 'lj', 'hj', 'co', 'btn', 'sb', 'bb'];
 const POS_LABEL = { utg: 'UTG', utg1: 'UTG+1', lj: 'LJ', hj: 'HJ', co: 'CO', btn: 'BU', sb: 'SB', bb: 'BB' };
 const TYPE_ORDER = ['rfi', 'vslimp', 'vsrfi', 'vsopenjam', 'vslimp-allin', 'vs3bet', 'vsallin', 'limp-vsraise', 'limp-vsallin'];
@@ -198,6 +198,51 @@ function chipRow(values, active, label, onPick, disabledFn) {
   return row;
 }
 
+// ---------- línea de mesa (selector de acción) ----------
+const CHIP = {
+  rfi:            { cls: 'me',  icon: '▶',    txt: 'RFI' },
+  vslimp:         { cls: 'lp',  icon: '=',          txt: 'limp' },
+  vsrfi:          { cls: 'op',  icon: '↗', txt: 'open' },
+  vsopenjam:      { cls: 'jm',  icon: '⚡',           txt: 'jam' },
+  'vslimp-allin': { cls: 'jm',  icon: '⚡',           txt: 'limp→jam' },
+  vs3bet:         { cls: 'tb',  icon: '⇈',      txt: '3bet', band: 'bR' },
+  vsallin:        { cls: 'jm',  icon: '⚡',           txt: 'jam',  band: 'bR' },
+  'limp-vsraise': { cls: 'op',  icon: '↗', txt: 'raise', band: 'bL' },
+  'limp-vsallin': { cls: 'jm',  icon: '⚡',           txt: 'jam',  band: 'bL' },
+};
+const CHIP_ORDER = ['vslimp', 'vsrfi', 'vsopenjam', 'vslimp-allin', 'limp-vsraise', 'limp-vsallin', 'vs3bet', 'vsallin'];
+function seatOf(e) {
+  if (e.type === 'rfi') return null;
+  const parts = (e.vs || '').split('-');
+  return e.type === 'vslimp-allin' ? parts[parts.length - 1] : parts[0];
+}
+function tableLine(hero, list, cur, onPick, badge) {
+  const wrap = h('<div class="tline"></div>');
+  const hi = POS.indexOf(hero);
+  POS.forEach((p, i) => {
+    const seat = h(`<div class="seat${p === hero ? ' hero' : ''}"><div class="sn">${p === hero ? POS_LABEL[p] + ' · tú' : POS_LABEL[p]}</div></div>`);
+    const mine = p === hero ? list.filter(e => e.type === 'rfi') : list.filter(e => seatOf(e) === p)
+      .sort((a, b) => CHIP_ORDER.indexOf(a.type) - CHIP_ORDER.indexOf(b.type));
+    if (!mine.length) seat.classList.add('empty');
+    mine.forEach(e => {
+      const c = CHIP[e.type] || { cls: 'op', icon: '•', txt: e.type };
+      let txt = c.txt;
+      if (e.type === 'vslimp' && (e.vs || '').includes('-')) txt = 'limp ×2';
+      const n = badge ? badge(e) : '';
+      const b = h(`<button class="m ${c.cls} ${c.band || ''}" title="${esc(spotLabel(e))}"><span class="ic" aria-hidden="true">${c.icon}</span>${esc(txt)}${n ? `<span class="cnt">${n}</span>` : ''}</button>`);
+      if (e === cur) b.classList.add('sel');
+      b.onclick = () => onPick(e);
+      seat.append(b);
+    });
+    if (i === hi && i > 0) wrap.append(h('<div class="sep"></div>'));
+    wrap.append(seat);
+    if (i === hi && i < POS.length - 1) wrap.append(h('<div class="sep"></div>'));
+  });
+  const box = h('<div class="tbox"></div>');
+  box.append(wrap);
+  return box;
+}
+
 // ---------- ESTUDIAR ----------
 const S = store.get('study', { pos: 'utg', stack: 100, file: null });
 function viewStudy(m) {
@@ -207,22 +252,12 @@ function viewStudy(m) {
   let cur = list.find(e => e.file === S.file) || list[0];
   S.file = cur.file; store.set('study', S);
 
-  m.append(h('<h3>Posición</h3>'));
   m.append(chipRow(POS, S.pos, p => POS_LABEL[p], p => { S.pos = p; S.file = null; show('study'); }, p => !BY[p]));
-  m.append(h('<h3>Stack</h3>'));
+  m.append(h('<div style="height:8px"></div>'));
   m.append(chipRow(allStacks(), S.stack, s => s + 'bb', s => { S.stack = s; S.file = null; show('study'); }, s => !BY[S.pos][s]));
-  m.append(h(`<h3>Situación · ${list.length} rangos</h3>`));
-
-  const spots = h('<div class="spots"></div>');
+  m.append(h('<div style="height:10px"></div>'));
+  m.append(tableLine(S.pos, list, cur, e => { S.file = e.file; store.set('study', S); show('study'); }));
   const favs = new Set(store.get('fav', []));
-  list.forEach(e => {
-    const g = TYPE_GROUP[e.type] || ['t-face', ''];
-    const b = h(`<button class="spot"><span class="n">${e.order}</span><span><span class="tag ${g[0]}">${esc(g[1])}</span>${esc(spotLabel(e))}${favs.has(e.file) ? ' ⭐' : ''}</span></button>`);
-    if (e === cur) b.classList.add('on');
-    b.onclick = () => { S.file = e.file; store.set('study', S); show('study'); setTimeout(() => $('#viewer').scrollIntoView({ behavior: 'smooth' }), 30); };
-    spots.append(b);
-  });
-  m.append(spots);
 
   const viewer = h(`<div class="viewer" id="viewer">
     <div class="viewer-head">
@@ -262,23 +297,34 @@ function swipe(el, go) {
 }
 
 // ---------- COMPARATIVAS ----------
-const C = store.get('compare', { mode: 'evo', pos: 'utg', key: 'rfi:', stack: 20, type: 'rfi', vs: '', a: null, b: null, view: 'slider' });
+const C = store.get('compare', { mode: 'evo', pos: 'utg', key: 'rfi:', stack: 20, type: 'rfi', vs: '', a: null, b: null, view: 'slider', layout: 'grid' });
+if (!C.layout) C.layout = 'grid';
 let selected = [];
+const saveC = () => store.set('compare', C);
 function viewCompare(m) {
-  m.append(h('<h2>Comparativas</h2>'));
-  const modes = { evo: 'Evolución por stack', pos: 'Todas las posiciones', duo: 'Cara a cara' };
-  m.append(chipRow(Object.keys(modes), C.mode, k => modes[k], k => { C.mode = k; selected = []; store.set('compare', C); show('compare'); }));
-  const body = h('<div></div>');
+  const modes = { evo: '⇣ Por stack', pos: '⇢ Por posición', duo: '⇄ Cara a cara' };
+  m.append(chipRow(Object.keys(modes), C.mode, k => modes[k], k => { C.mode = k; selected = []; saveC(); show('compare'); }));
+  const body = h('<div style="margin-top:8px"></div>');
   m.append(body);
   if (C.mode === 'evo') compareEvo(body);
   else if (C.mode === 'pos') comparePos(body);
   else compareDuo(body);
 }
 
+function layoutToggle(body) {
+  const row = h('<div class="row" style="justify-content:flex-end;margin:10px 0 6px"></div>');
+  [['row', '↔ Fila'], ['grid', '▦ Cuadrícula']].forEach(([k, t]) => {
+    const b = h(`<button class="chip small${C.layout === k ? ' on' : ''}">${t}</button>`);
+    b.onclick = () => { C.layout = k; saveC(); show('compare'); };
+    row.append(b);
+  });
+  body.append(row);
+}
+
 function tiles(container, entries, labelFn) {
-  const g = h('<div class="grid"></div>');
+  const g = h(`<div class="${C.layout === 'row' ? 'strip' : 'grid'}"></div>`);
   entries.forEach(e => {
-    const t = h(`<button class="tile"><div class="lbl"><span>${esc(labelFn(e))}</span><span class="badge hidden"></span></div><div class="frame"><img alt=""></div></button>`);
+    const t = h(`<button class="tile"><div class="lbl"><span>${esc(labelFn(e))}</span><span class="badge"></span></div><div class="frame"><img alt=""></div></button>`);
     setImg($('img', t), e.file);
     const paint = () => {
       const i = selected.indexOf(e);
@@ -295,65 +341,60 @@ function tiles(container, entries, labelFn) {
     g.append(t);
   });
   container.append(g);
-  const bar = h(`<div class="bar"><button class="btn ghost" id="cmp-big">Ver grande</button><button class="btn" id="cmp-go">Comparar A vs B</button></div>`);
+  const bar = h(`<div class="bar"><button class="btn ghost" id="cmp-big">Ver grande</button><button class="btn" id="cmp-go">A vs B</button></div>`);
   container.append(bar);
   const paintBar = () => {
     $('#cmp-big').disabled = selected.length !== 1;
     $('#cmp-go').disabled = selected.length !== 2;
   };
   $('#cmp-big').onclick = () => selected[0] && openLightbox(selected[0]);
-  $('#cmp-go').onclick = () => { C.a = selected[0].file; C.b = selected[1].file; C.mode = 'duo'; store.set('compare', C); selected = []; show('compare'); };
+  $('#cmp-go').onclick = () => { C.a = selected[0].file; C.b = selected[1].file; C.mode = 'duo'; saveC(); selected = []; show('compare'); };
   paintBar();
-  container.prepend(h('<p class="muted">Toca uno para verlo en grande, o dos para compararlos cara a cara.</p>'));
 }
 
 function compareEvo(body) {
-  body.append(h('<h3>Posición</h3>'));
-  body.append(chipRow(POS, C.pos, p => POS_LABEL[p], p => { C.pos = p; selected = []; store.set('compare', C); show('compare'); }, p => !BY[p]));
+  body.append(chipRow(POS, C.pos, p => POS_LABEL[p], p => { C.pos = p; selected = []; saveC(); show('compare'); }, p => !BY[p]));
   const entries = INDEX.filter(e => e.pos === C.pos);
   const keys = {};
   entries.forEach(e => { (keys[spotKey(e)] ||= []).push(e); });
-  const sortedKeys = Object.keys(keys).sort((a, b) => {
-    const [ta, va] = a.split(':'), [tb, vb] = b.split(':');
-    return TYPE_ORDER.indexOf(ta) - TYPE_ORDER.indexOf(tb) || POS.indexOf(va.split('-')[0]) - POS.indexOf(vb.split('-')[0]);
-  });
-  if (!keys[C.key]) C.key = sortedKeys[0];
-  body.append(h('<h3>Situación</h3>'));
-  const sel = h('<select></select>');
-  sortedKeys.forEach(k => sel.append(new Option(`${spotLabel(keys[k][0])} (${keys[k].length} stacks)`, k, false, k === C.key)));
-  sel.onchange = () => { C.key = sel.value; selected = []; store.set('compare', C); show('compare'); };
-  body.append(sel);
-  body.append(h(`<h3>${esc(POS_LABEL[C.pos])} · ${esc(spotLabel(keys[C.key][0]))} — de más profundo a más corto</h3>`));
-  tiles(body, keys[C.key].sort((a, b) => b.stack - a.stack), e => e.stack + 'bb');
+  if (!keys[C.key]) C.key = keys['rfi:'] ? 'rfi:' : Object.keys(keys)[0];
+  const reps = Object.values(keys).map(l => l[0]);
+  body.append(h('<div style="height:10px"></div>'));
+  body.append(tableLine(C.pos, reps, keys[C.key][0], e => { C.key = spotKey(e); selected = []; saveC(); show('compare'); }, e => keys[spotKey(e)].length));
+  layoutToggle(body);
+  tiles(body, keys[C.key].slice().sort((a, b) => b.stack - a.stack), e => e.stack + 'bb');
 }
 
 function comparePos(body) {
   const stacks = allStacks();
   if (!stacks.includes(C.stack)) C.stack = stacks[0];
-  body.append(h('<h3>Stack</h3>'));
-  body.append(chipRow(stacks, C.stack, s => s + 'bb', s => { C.stack = s; selected = []; store.set('compare', C); show('compare'); }));
+  body.append(chipRow(stacks, C.stack, s => s + 'bb', s => { C.stack = s; selected = []; saveC(); show('compare'); }));
   const atStack = INDEX.filter(e => e.stack === C.stack);
   const types = TYPE_ORDER.filter(t => atStack.some(e => e.type === t));
   if (!types.includes(C.type)) C.type = types[0];
-  body.append(h('<h3>Situación</h3>'));
-  const names = { rfi: 'RFI', vsrfi: 'vs open', vsopenjam: 'vs open-jam', vslimp: 'vs limp', 'vslimp-allin': 'vs limp + jam', vs3bet: 'Abres → 3bet', vsallin: 'Abres → all-in', 'limp-vsraise': 'Limp → raise', 'limp-vsallin': 'Limp → all-in' };
-  const row = h('<div class="row"></div>');
-  const tSel = h('<select></select>');
-  types.forEach(t => tSel.append(new Option(names[t] || t, t, false, t === C.type)));
-  tSel.onchange = () => { C.type = tSel.value; C.vs = ''; selected = []; store.set('compare', C); show('compare'); };
-  row.append(tSel);
+  const trow = h('<div class="chips" style="margin-top:10px"></div>');
+  types.forEach(t => {
+    const c = CHIP[t];
+    const b = h(`<button class="m ${c.cls} ${c.band || ''}" style="width:auto;padding:8px 14px"><span class="ic">${c.icon}</span>${esc(c.txt)}</button>`);
+    if (t === C.type) b.classList.add('sel');
+    b.onclick = () => { C.type = t; C.vs = ''; selected = []; saveC(); show('compare'); };
+    trow.append(b);
+  });
+  body.append(trow);
   const ofType = atStack.filter(e => e.type === C.type);
   const vss = [...new Set(ofType.map(e => e.vs || ''))].sort((a, b) => POS.indexOf(a.split('-')[0]) - POS.indexOf(b.split('-')[0]));
   if (vss.length > 1 || (vss.length === 1 && vss[0])) {
     if (!vss.includes(C.vs)) C.vs = vss[0];
-    const vSel = h('<select></select>');
-    vss.forEach(v => vSel.append(new Option('contra ' + vsLabel(v), v, false, v === C.vs)));
-    vSel.onchange = () => { C.vs = vSel.value; selected = []; store.set('compare', C); show('compare'); };
-    row.append(vSel);
+    const vrow = h('<div class="chips" style="margin-top:8px"><span class="muted" style="align-self:center;font-size:13px">vs</span></div>');
+    vss.forEach(v => {
+      const b = h(`<button class="chip small${v === C.vs ? ' on' : ''}">${esc(vsLabel(v))}</button>`);
+      b.onclick = () => { C.vs = v; selected = []; saveC(); show('compare'); };
+      vrow.append(b);
+    });
+    body.append(vrow);
   } else C.vs = '';
-  body.append(row);
   const list = ofType.filter(e => (e.vs || '') === C.vs).sort((a, b) => POS.indexOf(a.pos) - POS.indexOf(b.pos));
-  body.append(h(`<h3>${C.stack}bb · ${list.length} posiciones</h3>`));
+  layoutToggle(body);
   tiles(body, list, e => POS_LABEL[e.pos]);
 }
 
@@ -386,7 +427,7 @@ function compareDuo(body) {
   const duo = h('<div class="duo" style="margin-top:12px"></div>');
   duo.append(pa, pb);
   body.append(duo);
-  body.append(h('<h3>Vista</h3>'));
+  body.append(h('<div style="height:10px"></div>'));
   body.append(chipRow(['slider', 'side'], C.view, v => v === 'slider' ? 'Deslizador (A encima de B)' : 'Lado a lado', v => { C.view = v; store.set('compare', C); show('compare'); }));
   const swap = h('<button class="btn ghost" style="margin-top:10px">⇄ Intercambiar A y B</button>');
   swap.onclick = () => { [C.a, C.b] = [C.b, C.a]; store.set('compare', C); show('compare'); };
