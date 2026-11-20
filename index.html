@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="RangeViewer">
+<meta name="theme-color" content="#F6F1E7">
+<title>RangeViewer 2027</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icon-192.png">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="top">
+  <div class="brand"><span class="logo">♠</span><span>RangeViewer <b>2027</b></span></div>
+  <nav class="tabs" id="tabs">
+    <button data-view="study" class="on">Estudiar</button>
+    <button data-view="compare">Comparativas</button>
+    <button data-view="test">Test</button>
+    <button data-view="settings" aria-label="Ajustes">⚙︎</button>
+  </nav>
+</header>
+
+<main id="main"></main>
+
+<div id="lightbox" class="lightbox hidden">
+  <div class="lb-bar">
+    <span id="lb-title"></span>
+    <div class="lb-actions">
+      <button id="lb-zoom-out">−</button>
+      <button id="lb-zoom-in">+</button>
+      <button id="lb-close">✕</button>
+    </div>
+  </div>
+  <div class="lb-scroll" id="lb-scroll"><img id="lb-img" alt=""></div>
+</div>
+
+<input type="file" id="zip-input" accept=".zip,application/zip" hidden>
+<script src="jszip.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
