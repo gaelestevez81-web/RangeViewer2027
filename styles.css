@@ -132,3 +132,4 @@ input[type=range] { width: 100%; accent-color: var(--sage-deep); }
 .cnt { margin-left: 4px; font-size: 11px; font-weight: 700; opacity: .7; }
 .strip { display: flex; gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory; padding: 4px 2px 12px; -webkit-overflow-scrolling: touch; }
 .strip .tile { flex: none; width: min(78vw, 520px); scroll-snap-align: start; }
+.rol { background: #E1F5EE; color: #085041; } .pol { background: #F5C4B3; color: #712B13; }

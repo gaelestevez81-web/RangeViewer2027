@@ -1,7 +1,7 @@
 /* RangeViewer 2027 — visor de rangos (PWA). Las imágenes se importan desde ALL Ranges.zip y se guardan en IndexedDB. */
 'use strict';
 
-const VERSION = '2.0.0';
+const VERSION = '2.1.0';
 const POS = ['utg', 'utg1', 'lj', 'hj', 'co', 'btn', 'sb', 'bb'];
 const POS_LABEL = { utg: 'UTG', utg1: 'UTG+1', lj: 'LJ', hj: 'HJ', co: 'CO', btn: 'BU', sb: 'SB', bb: 'BB' };
 const TYPE_ORDER = ['rfi', 'vslimp', 'vsrfi', 'vsopenjam', 'vslimp-allin', 'vs3bet', 'vsallin', 'limp-vsraise', 'limp-vsallin'];
@@ -23,11 +23,11 @@ function spotLabel(e) {
     case 'vsrfi': return `vs open de ${v}`;
     case 'vsopenjam': return `vs open-jam de ${v}`;
     case 'vslimp': return `vs limp de ${v}`;
-    case 'vslimp-allin': { const [a, b] = (e.vs || '').split('-'); return `vs limp de ${POS_LABEL[a]} + all-in de ${POS_LABEL[b]}`; }
+    case 'vslimp-allin': { const [a, b] = (e.vs || '').split('-'); return `vs limp de ${POS_LABEL[a]} + POL de ${POS_LABEL[b]}`; }
     case 'vs3bet': return `Abres → 3bet de ${v}`;
     case 'vsallin': return `Abres → all-in de ${v}`;
-    case 'limp-vsraise': return `Limp → raise de ${v}`;
-    case 'limp-vsallin': return `Limp → all-in de ${v}`;
+    case 'limp-vsraise': return `Limp → ROL (raise over limp) de ${v}`;
+    case 'limp-vsallin': return `Limp → POL (push over limp) de ${v}`;
     default: return `${e.type} ${v}`;
   }
 }
@@ -204,11 +204,11 @@ const CHIP = {
   vslimp:         { cls: 'lp',  icon: '=',          txt: 'limp' },
   vsrfi:          { cls: 'op',  icon: '↗', txt: 'open' },
   vsopenjam:      { cls: 'jm',  icon: '⚡',           txt: 'jam' },
-  'vslimp-allin': { cls: 'jm',  icon: '⚡',           txt: 'limp→jam' },
+  'vslimp-allin': { cls: 'pol', icon: '⚡',           txt: 'POL' },
   vs3bet:         { cls: 'tb',  icon: '⇈',      txt: '3bet', band: 'bR' },
   vsallin:        { cls: 'jm',  icon: '⚡',           txt: 'jam',  band: 'bR' },
-  'limp-vsraise': { cls: 'op',  icon: '↗', txt: 'raise', band: 'bL' },
-  'limp-vsallin': { cls: 'jm',  icon: '⚡',           txt: 'jam',  band: 'bL' },
+  'limp-vsraise': { cls: 'rol', icon: '↗', txt: 'ROL', band: 'bL' },
+  'limp-vsallin': { cls: 'pol', icon: '⚡',           txt: 'POL',  band: 'bL' },
 };
 const CHIP_ORDER = ['vslimp', 'vsrfi', 'vsopenjam', 'vslimp-allin', 'limp-vsraise', 'limp-vsallin', 'vs3bet', 'vsallin'];
 function seatOf(e) {
